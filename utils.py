@@ -6,7 +6,11 @@ from datetime import datetime
 import os
 
 # ID de la hoja de Google Sheets
-SHEET_ID = '1n_ziJxtJD-dBGcedIQ-2vF_tFZ71sTJw2cQj6RpvbXE'
+# ID de la hoja de Google Sheets (intentar desde secrets primero)
+try:
+    SHEET_ID = st.secrets["sheet_id"]
+except:
+    SHEET_ID = '1n_ziJxtJD-dBGcedIQ-2vF_tFZ71sTJw2cQj6RpvbXE'  # ID por defecto para desarrollo
 
 # Ruta al archivo de credenciales
 CREDENTIALS_PATH = 'sheets_api.json'  # Tu archivo de credenciales en la raíz del proyecto
@@ -20,11 +24,20 @@ def create_sheets_service():
     Crea y retorna un servicio autenticado para acceder a Google Sheets.
     """
     try:
-        # Crear credenciales desde el archivo de servicio
-        credentials = service_account.Credentials.from_service_account_file(
-            CREDENTIALS_PATH,
-            scopes=SCOPES
-        )
+        # Intentar usar credenciales desde Streamlit secrets (para despliegue)
+        try:
+            import json
+            credentials_dict = json.loads(st.secrets["gcp_service_account"])
+            credentials = service_account.Credentials.from_info(
+                credentials_dict, 
+                scopes=SCOPES
+            )
+        # Si no está disponible, usar el archivo local (para desarrollo)
+        except Exception:
+            credentials = service_account.Credentials.from_service_account_file(
+                CREDENTIALS_PATH,
+                scopes=SCOPES
+            )
         
         # Construir el servicio de Google Sheets
         service = build('sheets', 'v4', credentials=credentials)
