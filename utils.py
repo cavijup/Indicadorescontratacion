@@ -6,11 +6,12 @@ from datetime import datetime
 import os
 
 # ID de la hoja de Google Sheets
-# ID de la hoja de Google Sheets (intentar desde secrets primero)
+# ID de la hoja de Google Sheets
 try:
     SHEET_ID = st.secrets["sheet_id"]
-except:
-    SHEET_ID = '1n_ziJxtJD-dBGcedIQ-2vF_tFZ71sTJw2cQj6RpvbXE'  # ID por defecto para desarrollo
+except Exception:
+    # Valor por defecto para desarrollo local
+    SHEET_ID = '1n_ziJxtJD-dBGcedIQ-2vF_tFZ71sTJw2cQj6RpvbXE'
 
 # Ruta al archivo de credenciales
 CREDENTIALS_PATH = 'sheets_api.json'  # Tu archivo de credenciales en la raíz del proyecto
@@ -24,20 +25,29 @@ def create_sheets_service():
     Crea y retorna un servicio autenticado para acceder a Google Sheets.
     """
     try:
-        # Intentar usar credenciales desde Streamlit secrets (para despliegue)
+        # Intentar usar las credenciales desde los secretos de Streamlit
+        import json
+        from google.oauth2.service_account import Credentials
+        
+        # Obtener credenciales desde los secretos de Streamlit
         try:
-            import json
-            credentials_dict = json.loads(st.secrets["gcp_service_account"])
-            credentials = service_account.Credentials.from_info(
-                credentials_dict, 
+            credentials_dict = st.secrets["gcp_service_account"]
+            credentials = Credentials.from_service_account_info(
+                credentials_dict,
                 scopes=SCOPES
             )
-        # Si no está disponible, usar el archivo local (para desarrollo)
-        except Exception:
-            credentials = service_account.Credentials.from_service_account_file(
-                CREDENTIALS_PATH,
-                scopes=SCOPES
-            )
+        except Exception as e:
+            st.error(f"Error al obtener credenciales desde secretos: {e}")
+            
+            # Intentar usar el archivo local como respaldo (para desarrollo local)
+            try:
+                credentials = service_account.Credentials.from_service_account_file(
+                    CREDENTIALS_PATH,
+                    scopes=SCOPES
+                )
+            except Exception as e2:
+                st.error(f"Error al obtener credenciales desde archivo local: {e2}")
+                return None
         
         # Construir el servicio de Google Sheets
         service = build('sheets', 'v4', credentials=credentials)
