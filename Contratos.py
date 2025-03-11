@@ -93,15 +93,19 @@ def run():
     # Mostrar resumen de datos cargados
     st.subheader("Resumen de Datos Cargados")
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
-        st.metric("Manipuladoras", f"{len(manipuladoras_df)} registros")
-    
+        # Contar solo filas con al menos un valor no nulo
+        valid_rows = sum(manipuladoras_df.astype(bool).any(axis=1))
+        st.metric("Manipuladoras", f"{valid_rows} registros")
+
     with col2:
-        st.metric("Planta", f"{len(planta_df)} registros")
-    
+        valid_rows = sum(planta_df.astype(bool).any(axis=1))
+        st.metric("Planta", f"{valid_rows} registros")
+
     with col3:
-        st.metric("Aprendices", f"{len(aprendices_df)} registros")
+        valid_rows = sum(aprendices_df.astype(bool).any(axis=1))
+        st.metric("Aprendices", f"{valid_rows} registros")
     
     # Verificar que las columnas existan
     for df_name, df in [("Manipuladoras", manipuladoras_df), 
