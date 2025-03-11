@@ -91,20 +91,21 @@ def run():
                 st.experimental_rerun()  # Volver a ejecutar la app para actualizar la interfaz
     
     # Mostrar resumen de datos cargados
+    # Mostrar resumen de datos cargados
     st.subheader("Resumen de Datos Cargados")
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        # Contar solo filas con al menos un valor no nulo
-        valid_rows = sum(manipuladoras_df.astype(bool).any(axis=1))
+        # Contar solo filas donde al menos una columna no es nula
+        valid_rows = manipuladoras_df.notna().any(axis=1).sum()
         st.metric("Manipuladoras", f"{valid_rows} registros")
 
     with col2:
-        valid_rows = sum(planta_df.astype(bool).any(axis=1))
+        valid_rows = planta_df.notna().any(axis=1).sum()
         st.metric("Planta", f"{valid_rows} registros")
 
     with col3:
-        valid_rows = sum(aprendices_df.astype(bool).any(axis=1))
+        valid_rows = aprendices_df.notna().any(axis=1).sum()
         st.metric("Aprendices", f"{valid_rows} registros")
     
     # Verificar que las columnas existan
