@@ -96,6 +96,8 @@ def load_planta_data():
         
         # Eliminar filas donde todas las columnas son NaN
         df = df.dropna(how='all')
+        # Eliminar filas completamente vacías
+        df = df[df.astype(bool).any(axis=1)]
         
         # Procesamiento de datos (convertir fechas, etc.)
         if 'FECHA DE INGRESO (AAAAMMDD)' in df.columns:
@@ -168,6 +170,10 @@ def load_manipuladoras_data():
         # Eliminar filas donde todas las columnas son NaN
         df = df.dropna(how='all')
         
+        
+        # Eliminar filas completamente vacías
+        df = df[df.astype(bool).any(axis=1)]
+        
         # Procesamiento de datos (convertir fechas, etc.)
         if 'FECHA DE INGRESO (AAAAMMDD)' in df.columns:
             df['fecha_ingreso'] = pd.to_datetime(df['FECHA DE INGRESO (AAAAMMDD)'], errors='coerce')
@@ -237,6 +243,9 @@ def load_aprendices_data():
         
         # Eliminar filas donde todas las columnas son NaN
         df = df.dropna(how='all')
+        
+        # Eliminar filas completamente vacías
+        df = df[df.astype(bool).any(axis=1)]
         
         # Procesamiento de datos (convertir fechas, etc.)
         if 'FECHA DE INGRESO' in df.columns:
