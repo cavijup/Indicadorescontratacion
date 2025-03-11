@@ -90,24 +90,7 @@ def run():
                 st.sidebar.success("Filtro eliminado. Mostrando todos los datos.")
                 st.experimental_rerun()  # Volver a ejecutar la app para actualizar la interfaz
     
-    # Mostrar resumen de datos cargados
-    # Mostrar resumen de datos cargados
-    st.subheader("Resumen de Datos Cargados")
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        # Contar solo filas donde al menos una columna no es nula
-        valid_rows = manipuladoras_df.notna().any(axis=1).sum()
-        st.metric("Manipuladoras", f"{valid_rows} registros")
-
-    with col2:
-        valid_rows = planta_df.notna().any(axis=1).sum()
-        st.metric("Planta", f"{valid_rows} registros")
-
-    with col3:
-        valid_rows = aprendices_df.notna().any(axis=1).sum()
-        st.metric("Aprendices", f"{valid_rows} registros")
-    
+       
     # Verificar que las columnas existan
     for df_name, df in [("Manipuladoras", manipuladoras_df), 
                        ("Planta", planta_df), 
