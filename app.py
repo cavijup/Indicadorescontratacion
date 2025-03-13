@@ -8,6 +8,7 @@ from datetime import datetime
 import Contratos
 import Novedades
 import Empresas
+import motivo  # Nuevo módulo de motivos de retiro
 
 # Configuración de la página
 st.set_page_config(
@@ -44,7 +45,7 @@ def main():
     # Menú de navegación
     menu = st.sidebar.radio(
         "Navegación",
-        ["🏠 Inicio", "📑 Contratos", "🔄 Novedades", "🏢 Empresas"]
+        ["🏠 Inicio", "📑 Contratos", "🔄 Novedades", "🏢 Empresas", "🚪 Motivos de Retiro"]  # Añadido nuevo ítem
     )
     
     # Mostrar información en el sidebar
@@ -59,6 +60,8 @@ def main():
         Novedades.run()
     elif menu == "🏢 Empresas":
         Empresas.run()
+    elif menu == "🚪 Motivos de Retiro":  # Nueva sección
+        motivo.run()
 
 def show_home():
     """Muestra la página de inicio"""
@@ -72,6 +75,7 @@ def show_home():
     * **Tipos de contratos** por fuente de datos
     * **Estados de contratación** (tipos de novedad)
     * **Distribución por empresas, programas y áreas**
+    * **Motivos de retiro** del personal  # Nueva funcionalidad
     
     ### 📊 Características
     
@@ -86,7 +90,7 @@ def show_home():
     """)
     
     # Mostrar cards con enlaces a las diferentes secciones
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)  # Ahora 4 columnas para incluir la nueva sección
     
     with col1:
         st.markdown("""
@@ -115,12 +119,21 @@ def show_home():
         </div>
         """, unsafe_allow_html=True)
     
+    with col4:
+        st.markdown("""
+        <div style="padding: 20px; border-radius: 10px; border: 1px solid #ddd; text-align: center;">
+            <h3>🚪 Motivos de Retiro</h3>
+            <p>Análisis de causas de retiro de personal</p>
+            <br/>
+        </div>
+        """, unsafe_allow_html=True)
+    
     # Agregar información de datos
     st.subheader("Información de los Datos")
     st.markdown("""
        
-    * **Manipuladoras**: Contiene información sobre programas, tipo de novedad, fechas y tipos de contrato.
-    * **Planta**: Contiene información sobre empresas, fechas, tipo de novedad y tipos de contrato.
+    * **Manipuladoras**: Contiene información sobre programas, tipo de novedad, fechas, tipos de contrato y motivos de retiro.
+    * **Planta**: Contiene información sobre empresas, fechas, tipo de novedad, tipos de contrato y motivos de retiro.
     * **Aprendices**: Contiene información sobre áreas, tipo de novedad, fechas y tipos de contrato.
     """)
 

@@ -113,8 +113,14 @@ def load_planta_data():
         
         if 'TIPO DE CONTRATO' in df.columns:
             df['tipo_contrato'] = df['TIPO DE CONTRATO']
+            
         if 'AREA' in df.columns:
             df['area'] = df['AREA']
+            
+        # NUEVO: Mapear motivo de retiro
+        if 'MOTIVO DEL RETIRO' in df.columns:
+            df['motivo_retiro'] = df['MOTIVO DEL RETIRO']
+            
         return df
     
     except Exception as e:
@@ -184,6 +190,10 @@ def load_manipuladoras_data():
         
         if 'TIPO DE CONTRATO' in df.columns:
             df['tipo_contrato'] = df['TIPO DE CONTRATO']
+            
+        # NUEVO: Mapear motivo de retiro
+        if 'MOTIVO DEL RETIRO' in df.columns:
+            df['motivo_retiro'] = df['MOTIVO DEL RETIRO']
         
         return df
     
@@ -335,6 +345,46 @@ def filter_by_date_range(df, start_date, end_date, date_column='fecha_ingreso'):
     # Filtrar por rango de fechas
     mask = (df[date_column] >= start_date) & (df[date_column] <= end_date)
     return df[mask]
+
+# Función para filtrar por tipo de novedad
+def filter_by_novedad(df, selected_novedades):
+    """
+    Filtra un DataFrame por tipos de novedad seleccionados.
+    
+    Args:
+        df: DataFrame de pandas
+        selected_novedades: Lista de tipos de novedad a incluir
+        
+    Returns:
+        DataFrame filtrado
+    """
+    if df.empty or 'tipo_novedad' not in df.columns or not selected_novedades:
+        return df
+    
+    # Filtrar por tipos de novedad seleccionados
+    return df[df['tipo_novedad'].isin(selected_novedades)]
+
+# Función para obtener todos los tipos de novedad distintos
+def get_all_novedades_types(data_dict):
+    """
+    Obtiene todos los tipos de novedad distintos de todas las fuentes.
+    
+    Args:
+        data_dict: Diccionario con los DataFrames {'manipuladoras': df1, 'planta': df2, 'aprendices': df3}
+        
+    Returns:
+        Lista ordenada de tipos de novedad únicos
+    """
+    all_novedades = set()
+    
+    for df_name, df in data_dict.items():
+        if not df.empty and 'tipo_novedad' in df.columns:
+            # Añadir cada tipo de novedad único al conjunto
+            df_novedades = df['tipo_novedad'].dropna().unique()
+            all_novedades.update(df_novedades)
+    
+    # Convertir a lista y ordenar
+    return sorted(list(all_novedades))
 
 # Función para limpiar la caché de Streamlit
 def clear_cache():
