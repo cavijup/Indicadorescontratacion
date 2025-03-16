@@ -178,7 +178,45 @@ def run():
                 
                 st.sidebar.success("Filtro de fechas eliminado.")
                 st.experimental_rerun()  # Volver a ejecutar la app para actualizar la interfaz
+                
+    # Añadir botón para incluir retirados del mes anterior
+    st.sidebar.header("Opciones adicionales de análisis")
 
+    incluir_retirados_mes_anterior = st.sidebar.button("✅ Incluir retirados del mes anterior")
+
+    if incluir_retirados_mes_anterior:
+        # Guardar el estado en la sesión
+        st.session_state.incluir_retirados_mes_anterior = True
+        
+        # Obtener el mes anterior
+        today = pd.Timestamp.now()
+        first_day_current_month = pd.Timestamp(today.year, today.month, 1)
+        last_day_previous_month = first_day_current_month - pd.Timedelta(days=1)
+        first_day_previous_month = pd.Timestamp(last_day_previous_month.year, last_day_previous_month.month, 1)
+        
+        # Guardar fechas del mes anterior en la sesión
+        st.session_state.mes_anterior_inicio = first_day_previous_month
+        st.session_state.mes_anterior_fin = last_day_previous_month
+        
+        st.sidebar.success(f"Se incluirán retirados del periodo: {first_day_previous_month.strftime('%d/%m/%Y')} - {last_day_previous_month.strftime('%d/%m/%Y')}")
+        
+    elif st.session_state.get('incluir_retirados_mes_anterior', False):
+        # Mostrar mensaje si el filtro ya está activo
+        inicio = st.session_state.mes_anterior_inicio
+        fin = st.session_state.mes_anterior_fin
+        st.sidebar.info(f"Incluyendo retirados del periodo: {inicio.strftime('%d/%m/%Y')} - {fin.strftime('%d/%m/%Y')}")
+        
+    # Botón para desactivar la inclusión de retirados del mes anterior
+    if st.session_state.get('incluir_retirados_mes_anterior', False):
+        if st.sidebar.button("❌ Quitar retirados del mes anterior"):
+            st.session_state.incluir_retirados_mes_anterior = False
+            if 'mes_anterior_inicio' in st.session_state:
+                del st.session_state.mes_anterior_inicio
+            if 'mes_anterior_fin' in st.session_state:
+                del st.session_state.mes_anterior_fin
+            st.sidebar.success("Se han eliminado los retirados del mes anterior del análisis.")
+            st.experimental_rerun()
+    
     # Mostrar indicadores de novedades
     st.subheader("Resumen de Tipos de Novedades")
     
