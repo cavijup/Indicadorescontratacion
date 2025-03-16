@@ -422,39 +422,37 @@ def run():
         else:
             st.warning("No hay datos de motivos de retiro disponibles para Manipuladoras.")
     
-    # Análisis combinado de Motivo de Retiro por Empresa/Programa - SOLO LA TABLA CRUZADA
+    # Análisis combinado de Motivo de Retiro por Entidad - SOLO LA TABLA CRUZADA
     st.subheader("Tabla Cruzada: Motivos de Retiro por Entidad")
-    
+
     # Preparar los datos: entidades de la tabla Planta (empresas) y Manipuladoras (programas)
     planta_data = None
     if 'motivo_retiro' in planta_df.columns and 'empresa' in planta_df.columns and not planta_df.empty:
         planta_con_motivo = planta_df.dropna(subset=['motivo_retiro', 'empresa'])
         if not planta_con_motivo.empty:
             planta_data = planta_con_motivo[['empresa', 'motivo_retiro']].copy()
-            planta_data['tipo_entidad'] = 'Empresa'
-            planta_data['fuente'] = 'Planta'
+            # Eliminamos la asignación de 'tipo_entidad'
             planta_data.rename(columns={'empresa': 'entidad'}, inplace=True)
-    
+
     manipuladoras_data = None
     if 'motivo_retiro' in manipuladoras_df.columns and 'programa' in manipuladoras_df.columns and not manipuladoras_df.empty:
         manipuladoras_con_motivo = manipuladoras_df.dropna(subset=['motivo_retiro', 'programa'])
         if not manipuladoras_con_motivo.empty:
             manipuladoras_data = manipuladoras_con_motivo[['programa', 'motivo_retiro']].copy()
-            manipuladoras_data['tipo_entidad'] = 'Programa'
-            manipuladoras_data['fuente'] = 'Manipuladoras'
+            # Eliminamos la asignación de 'tipo_entidad'
             manipuladoras_data.rename(columns={'programa': 'entidad'}, inplace=True)
-    
+
     # Combinar los datos si existen
     combined_data = pd.DataFrame()
     if planta_data is not None:
         combined_data = pd.concat([combined_data, planta_data])
     if manipuladoras_data is not None:
         combined_data = pd.concat([combined_data, manipuladoras_data])
-    
+
     if not combined_data.empty:
         try:
-            # Agrupar por entidad, tipo_entidad, fuente y motivo
-            cross_data = combined_data.groupby(['entidad', 'tipo_entidad', 'fuente', 'motivo_retiro']).size().reset_index(name='conteo')
+            # Agrupar por entidad y motivo (ya no incluimos tipo_entidad)
+            cross_data = combined_data.groupby(['entidad', 'motivo_retiro']).size().reset_index(name='conteo')
             
             # Crear matriz de cruce para los principales motivos y entidades
             top_10_motivos = cross_data.groupby('motivo_retiro')['conteo'].sum().nlargest(10).index.tolist()
@@ -466,14 +464,14 @@ def run():
                 cross_data['entidad'].isin(top_15_entidades)
             ]
             
-            # Agrupar por entidad y motivo para una vista más clara
-            summary_data = top_filtered_data.groupby(['entidad', 'tipo_entidad', 'motivo_retiro'])['conteo'].sum().reset_index()
+            # Agrupar solo por entidad y motivo (sin tipo_entidad)
+            summary_data = top_filtered_data.groupby(['entidad', 'motivo_retiro'])['conteo'].sum().reset_index()
             
-            # Crear tabla pivot para mejor visualización
+            # Crear tabla pivot para mejor visualización (sin tipo_entidad)
             pivot_table = pd.pivot_table(
                 summary_data,
                 values='conteo',
-                index=['entidad', 'tipo_entidad'],
+                index=['entidad'],  # Ya no incluimos tipo_entidad
                 columns='motivo_retiro',
                 fill_value=0
             ).reset_index()
@@ -486,7 +484,8 @@ def run():
             st.warning("Mostrando tabla simplificada")
             
             if not combined_data.empty:
-                aggregated_data = combined_data.groupby(['entidad', 'tipo_entidad', 'motivo_retiro']).size().reset_index(name='conteo')
+                # Agrupar solo por entidad y motivo (sin tipo_entidad)
+                aggregated_data = combined_data.groupby(['entidad', 'motivo_retiro']).size().reset_index(name='conteo')
                 st.dataframe(aggregated_data)
     else:
         st.warning("No hay suficientes datos para la tabla cruzada de motivos de retiro.")
