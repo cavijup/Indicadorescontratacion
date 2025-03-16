@@ -22,7 +22,7 @@ def run():
 
     # Obtener todos los tipos de novedad disponibles
     all_novedades = get_all_novedades_types(data_dict)
-
+    
     # Añadir filtro por tipo de novedad
     st.sidebar.header("Filtrar por tipo de novedad")
     
@@ -81,8 +81,7 @@ def run():
             
             st.sidebar.success("Filtro de novedad eliminado. Mostrando todos los tipos de novedad.")
             st.experimental_rerun()  # Volver a ejecutar la app para actualizar la interfaz
-
-    # Añadir filtro por rango de fechas (existente)
+            # Añadir filtro por rango de fechas (existente)
     st.sidebar.header("Filtrar por fecha de ingreso")
 
     # Determinar las fechas mínima y máxima entre todos los DataFrames
@@ -179,7 +178,7 @@ def run():
                 st.sidebar.success("Filtro de fechas eliminado.")
                 st.experimental_rerun()  # Volver a ejecutar la app para actualizar la interfaz
                 
-    # Añadir botón para incluir retirados del mes anterior
+    # NUEVO: Añadir botón para incluir retirados del mes anterior
     st.sidebar.header("Opciones adicionales de análisis")
 
     incluir_retirados_mes_anterior = st.sidebar.button("✅ Incluir retirados del mes anterior")
@@ -216,7 +215,87 @@ def run():
                 del st.session_state.mes_anterior_fin
             st.sidebar.success("Se han eliminado los retirados del mes anterior del análisis.")
             st.experimental_rerun()
-    
+            
+    # NUEVO: Aplicar filtro para incluir retirados del mes anterior si está activo
+    if st.session_state.get('incluir_retirados_mes_anterior', False) and 'RETIRADO' in all_novedades:
+        # Para cada DataFrame, añadir retirados del mes anterior
+        # Manipuladoras
+        if not manipuladoras_df.empty and 'tipo_novedad' in manipuladoras_df.columns and 'fecha_retiro' in manipuladoras_df.columns:
+            # Obtener DataFrame original sin filtros de novedad
+            original_manipuladoras = data_dict['manipuladoras']
+            
+            # Filtrar retirados del mes anterior
+            retirados_mes_anterior = original_manipuladoras[
+                (original_manipuladoras['tipo_novedad'] == 'RETIRADO') & 
+                (original_manipuladoras['fecha_retiro'] >= st.session_state.mes_anterior_inicio) & 
+                (original_manipuladoras['fecha_retiro'] <= st.session_state.mes_anterior_fin)
+            ]
+            
+            # Concatenar con el DataFrame filtrado actual
+            if not retirados_mes_anterior.empty:
+                manipuladoras_df = pd.concat([manipuladoras_df, retirados_mes_anterior]).drop_duplicates()
+        
+        # Planta
+        if not planta_df.empty and 'tipo_novedad' in planta_df.columns and 'fecha_retiro' in planta_df.columns:
+            # Obtener DataFrame original sin filtros de novedad
+            original_planta = data_dict['planta']
+            
+            # Filtrar retirados del mes anterior
+            retirados_mes_anterior = original_planta[
+                (original_planta['tipo_novedad'] == 'RETIRADO') & 
+                (original_planta['fecha_retiro'] >= st.session_state.mes_anterior_inicio) & 
+                (original_planta['fecha_retiro'] <= st.session_state.mes_anterior_fin)
+            ]
+            
+            # Concatenar con el DataFrame filtrado actual
+            if not retirados_mes_anterior.empty:
+                planta_df = pd.concat([planta_df, retirados_mes_anterior]).drop_duplicates()
+        
+        # Aprendices
+        if not aprendices_df.empty and 'tipo_novedad' in aprendices_df.columns and 'fecha_retiro' in aprendices_df.columns:
+            # Obtener DataFrame original sin filtros de novedad
+            original_aprendices = data_dict['aprendices']
+            
+            # Filtrar retirados del mes anterior
+            retirados_mes_anterior = original_aprendices[
+                (original_aprendices['tipo_novedad'] == 'RETIRADO') & 
+                (original_aprendices['fecha_retiro'] >= st.session_state.mes_anterior_inicio) & 
+                (original_aprendices['fecha_retiro'] <= st.session_state.mes_anterior_fin)
+            ]
+            
+            # Concatenar con el DataFrame filtrado actual
+            if not retirados_mes_anterior.empty:
+                aprendices_df = pd.concat([aprendices_df, retirados_mes_anterior]).drop_duplicates()
+                # NUEVO: Mostrar indicador de retirados incluidos
+    if st.session_state.get('incluir_retirados_mes_anterior', False):
+        total_retirados_mes_anterior = 0
+        # Contar retirados incluidos
+        if not manipuladoras_df.empty and 'tipo_novedad' in manipuladoras_df.columns and 'fecha_retiro' in manipuladoras_df.columns:
+            retirados_manip = manipuladoras_df[
+                (manipuladoras_df['tipo_novedad'] == 'RETIRADO') & 
+                (manipuladoras_df['fecha_retiro'] >= st.session_state.mes_anterior_inicio) & 
+                (manipuladoras_df['fecha_retiro'] <= st.session_state.mes_anterior_fin)
+            ].shape[0]
+            total_retirados_mes_anterior += retirados_manip
+        
+        if not planta_df.empty and 'tipo_novedad' in planta_df.columns and 'fecha_retiro' in planta_df.columns:
+            retirados_planta = planta_df[
+                (planta_df['tipo_novedad'] == 'RETIRADO') & 
+                (planta_df['fecha_retiro'] >= st.session_state.mes_anterior_inicio) & 
+                (planta_df['fecha_retiro'] <= st.session_state.mes_anterior_fin)
+            ].shape[0]
+            total_retirados_mes_anterior += retirados_planta
+        
+        if not aprendices_df.empty and 'tipo_novedad' in aprendices_df.columns and 'fecha_retiro' in aprendices_df.columns:
+            retirados_apren = aprendices_df[
+                (aprendices_df['tipo_novedad'] == 'RETIRADO') & 
+                (aprendices_df['fecha_retiro'] >= st.session_state.mes_anterior_inicio) & 
+                (aprendices_df['fecha_retiro'] <= st.session_state.mes_anterior_fin)
+            ].shape[0]
+            total_retirados_mes_anterior += retirados_apren
+        
+        st.info(f"📊 Análisis incluyendo {total_retirados_mes_anterior} retirados del mes anterior ({st.session_state.mes_anterior_inicio.strftime('%B %Y')})")
+
     # Mostrar indicadores de novedades
     st.subheader("Resumen de Tipos de Novedades")
     
@@ -438,7 +517,6 @@ def run():
                 
                 # Agrupar por tipo de novedad y tipo de contrato
                 buga_cross = buga_df.groupby(['tipo_novedad', 'tipo_contrato']).size().reset_index(name='conteo')
-                
                 # Crear gráfico de barras apiladas
                 fig_buga_cross = px.bar(
                     buga_cross,
@@ -458,3 +536,5 @@ def run():
             st.warning("No se encontraron registros con 'BUGA' en el área.")
     else:
         st.warning("La columna 'AREA' no existe en los datos de Planta o no hay datos disponibles.")
+                                                                                                   
+                                                                                                   
