@@ -11,7 +11,7 @@ try:
     SHEET_ID = st.secrets["sheet_id"]
 except Exception:
     # Valor por defecto para desarrollo local
-    SHEET_ID = '1n_ziJxtJD-dBGcedIQ-2vF_tFZ71sTJw2cQj6RpvbXE'
+    SHEET_ID = '1OzyM4jlADde1MKU7INbtXvVOUaqD1KfZH_gFLOciwNk'
 
 # Ruta al archivo de credenciales
 CREDENTIALS_PATH = 'sheets_api.json'  # Tu archivo de credenciales en la raíz del proyecto
