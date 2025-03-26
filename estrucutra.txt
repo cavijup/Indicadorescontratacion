@@ -1,12 +1,10 @@
 dashboard-indicadores/
 │
-├── app.py              # Archivo principal de la aplicación
+├── app.py              # Archivo principal de la aplicación (simplificado)
 ├── utils.py            # Funciones de utilidad para cargar y procesar datos
-├── Contratos.py        # Módulo para el análisis de tipos de contrato
-├── Novedades.py        # Módulo para el análisis de tipos de novedad
-├── Empresas.py         # Módulo para el análisis de empresas/programas/áreas
+├── indicadores.py      # Módulo para el análisis de tipos de contrato
 ├── sheets_api.json     # Credenciales para la API de Google Sheets (NO incluir en control de versiones)
 ├── requirements.txt    # Dependencias del proyecto
 ├── .streamlit/         # Directorio para configuración de Streamlit
 │   └── secrets.toml    # Archivo de secretos (NO incluir en control de versiones)
-└── README.md           # Este archivo
+└── README.md    

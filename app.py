@@ -61,15 +61,14 @@ def show_home():
     st.markdown("""
     ## Bienvenido al Dashboard de Indicadores de Contratación
     
-    Este dashboard simplificado permite visualizar y analizar indicadores relacionados con:
+    Este dashboard simplificado permite visualizar:
     
-    * **Tipos de contratos** por fuente de datos (Manipuladoras y Planta)
+    * **Total de tipos de contratos** combinando datos de Manipuladoras y Planta
     
     ### 📊 Características
     
-    - Visualización de datos de dos fuentes: Manipuladoras y Planta
-    - Gráficos interactivos
-    - Análisis comparativo
+    - Visualización de datos combinados en una tabla simple
+    - Conteo total por cada tipo de contrato
     
     ### 🚀 Comenzar
     
