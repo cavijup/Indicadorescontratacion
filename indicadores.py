@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils import load_all_data, filter_by_date_range, filter_by_novedad, get_all_novedades_types
+from utils import load_all_data
 
 def run():
     """
@@ -14,9 +14,10 @@ def run():
         # Extraer los DataFrames
         manipuladoras_df = data_dict['manipuladoras']
         planta_df = data_dict['planta']
+        aprendices_df = data_dict['aprendices']
 
     # Obtener todos los tipos de novedad disponibles
-    all_novedades = get_all_novedades_types(data_dict)
+    all_novedades = get_all_novedades_types_custom(data_dict)
 
     # Añadir filtro por tipo de novedad
     st.sidebar.header("Filtrar por tipo de novedad")
@@ -32,10 +33,10 @@ def run():
     if st.sidebar.button("Aplicar filtro de novedad"):
         # Aplicar filtro a cada DataFrame
         if not manipuladoras_df.empty and 'tipo_novedad' in manipuladoras_df.columns:
-            manipuladoras_df = filter_by_novedad(manipuladoras_df, selected_novedades)
+            manipuladoras_df = filter_by_novedad_custom(manipuladoras_df, selected_novedades)
         
         if not planta_df.empty and 'tipo_novedad' in planta_df.columns:
-            planta_df = filter_by_novedad(planta_df, selected_novedades)
+            planta_df = filter_by_novedad_custom(planta_df, selected_novedades)
         
         # Guardar estado del filtro
         st.session_state.novedad_filtro_aplicado = True
@@ -49,10 +50,10 @@ def run():
         
         # Si hay filtro guardado en la sesión, aplicarlo
         if not manipuladoras_df.empty and 'tipo_novedad' in manipuladoras_df.columns:
-            manipuladoras_df = filter_by_novedad(manipuladoras_df, st.session_state.selected_novedades)
+            manipuladoras_df = filter_by_novedad_custom(manipuladoras_df, st.session_state.selected_novedades)
         
         if not planta_df.empty and 'tipo_novedad' in planta_df.columns:
-            planta_df = filter_by_novedad(planta_df, st.session_state.selected_novedades)
+            planta_df = filter_by_novedad_custom(planta_df, st.session_state.selected_novedades)
     
     # Botón para limpiar filtro de novedad
     if st.session_state.get('novedad_filtro_aplicado', False):
@@ -102,10 +103,10 @@ def run():
         if st.sidebar.button("Aplicar filtro de fechas"):
             # Aplicar filtro a cada DataFrame
             if not manipuladoras_df.empty and 'fecha_ingreso' in manipuladoras_df.columns:
-                manipuladoras_df = filter_by_date_range(manipuladoras_df, pd.Timestamp(start_date), pd.Timestamp(end_date))
+                manipuladoras_df = filter_by_date_range_custom(manipuladoras_df, pd.Timestamp(start_date), pd.Timestamp(end_date))
             
             if not planta_df.empty and 'fecha_ingreso' in planta_df.columns:
-                planta_df = filter_by_date_range(planta_df, pd.Timestamp(start_date), pd.Timestamp(end_date))
+                planta_df = filter_by_date_range_custom(planta_df, pd.Timestamp(start_date), pd.Timestamp(end_date))
             
             # Guardar estado del filtro
             st.session_state.filtro_aplicado = True
@@ -119,12 +120,12 @@ def run():
             
             # Si hay filtro guardado en la sesión, aplicarlo
             if not manipuladoras_df.empty and 'fecha_ingreso' in manipuladoras_df.columns:
-                manipuladoras_df = filter_by_date_range(manipuladoras_df, 
+                manipuladoras_df = filter_by_date_range_custom(manipuladoras_df, 
                                                        pd.Timestamp(st.session_state.start_date), 
                                                        pd.Timestamp(st.session_state.end_date))
             
             if not planta_df.empty and 'fecha_ingreso' in planta_df.columns:
-                planta_df = filter_by_date_range(planta_df, 
+                planta_df = filter_by_date_range_custom(planta_df, 
                                                pd.Timestamp(st.session_state.start_date), 
                                                pd.Timestamp(st.session_state.end_date))
             
@@ -139,10 +140,10 @@ def run():
                 # Aplicar el filtro de novedad si está activo
                 if st.session_state.get('novedad_filtro_aplicado', False):
                     if not manipuladoras_df.empty and 'tipo_novedad' in manipuladoras_df.columns:
-                        manipuladoras_df = filter_by_novedad(manipuladoras_df, st.session_state.selected_novedades)
+                        manipuladoras_df = filter_by_novedad_custom(manipuladoras_df, st.session_state.selected_novedades)
                     
                     if not planta_df.empty and 'tipo_novedad' in planta_df.columns:
-                        planta_df = filter_by_novedad(planta_df, st.session_state.selected_novedades)
+                        planta_df = filter_by_novedad_custom(planta_df, st.session_state.selected_novedades)
                 
                 # Limpiar estado del filtro
                 st.session_state.filtro_aplicado = False
@@ -183,3 +184,67 @@ def run():
     # Mostrar solo la tabla con los conteos
     st.header("Conteo Total de Tipos de Contrato")
     st.dataframe(conteo_tipos, use_container_width=True)
+
+
+# Funciones de filtrado personalizadas (para evitar importar de utils)
+def filter_by_date_range_custom(df, start_date, end_date, date_column='fecha_ingreso'):
+    """
+    Filtra un DataFrame por un rango de fechas.
+    
+    Args:
+        df: DataFrame de pandas
+        start_date: Fecha de inicio (inclusive)
+        end_date: Fecha de fin (inclusive)
+        date_column: Nombre de la columna de fecha
+        
+    Returns:
+        DataFrame filtrado
+    """
+    if df.empty or date_column not in df.columns:
+        return df
+    
+    # Asegurar que la columna de fecha es datetime
+    if not pd.api.types.is_datetime64_dtype(df[date_column]):
+        df[date_column] = pd.to_datetime(df[date_column], errors='coerce')
+    
+    # Filtrar por rango de fechas
+    mask = (df[date_column] >= start_date) & (df[date_column] <= end_date)
+    return df[mask]
+
+def filter_by_novedad_custom(df, selected_novedades):
+    """
+    Filtra un DataFrame por tipos de novedad seleccionados.
+    
+    Args:
+        df: DataFrame de pandas
+        selected_novedades: Lista de tipos de novedad a incluir
+        
+    Returns:
+        DataFrame filtrado
+    """
+    if df.empty or 'tipo_novedad' not in df.columns or not selected_novedades:
+        return df
+    
+    # Filtrar por tipos de novedad seleccionados
+    return df[df['tipo_novedad'].isin(selected_novedades)]
+
+def get_all_novedades_types_custom(data_dict):
+    """
+    Obtiene todos los tipos de novedad distintos de todas las fuentes.
+    
+    Args:
+        data_dict: Diccionario con los DataFrames {'manipuladoras': df1, 'planta': df2, 'aprendices': df3}
+        
+    Returns:
+        Lista ordenada de tipos de novedad únicos
+    """
+    all_novedades = set()
+    
+    for df_name, df in data_dict.items():
+        if not df.empty and 'tipo_novedad' in df.columns:
+            # Añadir cada tipo de novedad único al conjunto
+            df_novedades = df['tipo_novedad'].dropna().unique()
+            all_novedades.update(df_novedades)
+    
+    # Convertir a lista y ordenar
+    return sorted(list(all_novedades))
