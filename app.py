@@ -1,7 +1,11 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-from utils import load_all_data
+import numpy as np
+import time
+from datetime import datetime
+
+# Importar únicamente el nuevo módulo de indicadores
+import indicadores
 
 # Configuración de la página
 st.set_page_config(
@@ -11,107 +15,82 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Funciones de utilidad
+def add_logo():
+    """Agrega un logo o título estilizado al sidebar"""
+    st.sidebar.markdown("""
+    <div style='text-align: center'>
+        <h1 style='color: #4682B4'>📊 Dashboard</h1>
+        <h2 style='color: #5F9EA0'>Indicadores de Contratación</h2>
+    </div>
+    """, unsafe_allow_html=True)
+
+def show_info():
+    """Muestra información sobre el dashboard"""
+    st.sidebar.markdown("---")
+    
+    # Mostrar solo la hora actual
+    now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    st.sidebar.markdown(f"**Última actualización:** {now}")
+
+# Función principal
 def main():
     """Función principal que ejecuta la aplicación"""
+    # Agregar logo y menú de navegación
+    add_logo()
     
-    # Título y descripción
-    st.title("Dashboard de Indicadores de Contratación")
-    st.markdown("Análisis de datos de contratación para Planta y Manipuladoras")
+    # Menú de navegación simplificado
+    menu = st.sidebar.radio(
+        "Navegación",
+        ["🏠 Inicio", "📊 Indicadores de Contrato"]
+    )
     
-    # Cargar datos
-    with st.spinner("Cargando datos..."):
-        data_dict = load_all_data()
-        
-        # Extraer los DataFrames
-        manipuladoras_df = data_dict['manipuladoras']
-        planta_df = data_dict['planta']
+    # Mostrar información en el sidebar
+    show_info()
     
-    # Verificar que los datos se hayan cargado correctamente
-    if manipuladoras_df.empty or planta_df.empty:
-        st.error("No se pudieron cargar los datos. Por favor verifica la conexión con Google Sheets.")
-        return
+    # Renderizar la sección seleccionada
+    if menu == "🏠 Inicio":
+        show_home()
+    elif menu == "📊 Indicadores de Contrato":
+        indicadores.run()
 
-    # Mostrar indicador: Número de personas por tipo de contrato
-    st.header("Número de personas por tipo de contrato")
+def show_home():
+    """Muestra la página de inicio"""
+    st.title("Dashboard de Indicadores de Contratación")
     
-    # Asegurarse de que las columnas existen
-    if 'TIPO DE CONTRATO' not in planta_df.columns:
-        st.error("La columna 'TIPO DE CONTRATO' no se encontró en la tabla Planta.")
-        st.write(f"Columnas disponibles en Planta: {planta_df.columns.tolist()}")
+    st.markdown("""
+    ## Bienvenido al Dashboard de Indicadores de Contratación
     
-    if 'TIPO DE CONTRATO' not in manipuladoras_df.columns:
-        st.error("La columna 'TIPO DE CONTRATO' no se encontró en la tabla Manipuladoras.")
-        st.write(f"Columnas disponibles en Manipuladoras: {manipuladoras_df.columns.tolist()}")
+    Este dashboard simplificado permite visualizar y analizar indicadores relacionados con:
     
-    # Crear DataFrames combinados para el análisis
-    tipos_contrato = []
+    * **Tipos de contratos** por fuente de datos (Manipuladoras y Planta)
     
-    # Procesar datos de Planta
-    if 'TIPO DE CONTRATO' in planta_df.columns and not planta_df.empty:
-        conteo_planta = planta_df['TIPO DE CONTRATO'].value_counts().reset_index()
-        conteo_planta.columns = ['tipo_contrato', 'conteo']
-        conteo_planta['fuente'] = 'Planta'
-        tipos_contrato.append(conteo_planta)
+    ### 📊 Características
     
-    # Procesar datos de Manipuladoras
-    if 'TIPO DE CONTRATO' in manipuladoras_df.columns and not manipuladoras_df.empty:
-        conteo_manipuladoras = manipuladoras_df['TIPO DE CONTRATO'].value_counts().reset_index()
-        conteo_manipuladoras.columns = ['tipo_contrato', 'conteo']
-        conteo_manipuladoras['fuente'] = 'Manipuladoras'
-        tipos_contrato.append(conteo_manipuladoras)
+    - Visualización de datos de dos fuentes: Manipuladoras y Planta
+    - Gráficos interactivos
+    - Análisis comparativo
     
-    # Combinar todos los conteos
-    if tipos_contrato:
-        df_tipos_contrato = pd.concat(tipos_contrato, ignore_index=True)
-        
-        # Crear gráfico de barras
-        fig = px.bar(
-            df_tipos_contrato, 
-            x='tipo_contrato', 
-            y='conteo', 
-            color='fuente',
-            title='Distribución de Tipos de Contrato por Fuente',
-            labels={'tipo_contrato': 'Tipo de Contrato', 'conteo': 'Cantidad', 'fuente': 'Fuente'},
-            barmode='group'
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Mostrar tabla de datos
-        st.subheader("Tabla de Datos - Tipos de Contrato")
-        st.dataframe(df_tipos_contrato)
-        
-        # Gráfico de torta para distribución total de contratos
-        st.subheader("Distribución Total de Tipos de Contrato")
-        
-        # Agrupar por tipo de contrato para obtener el total general
-        total_contratos = df_tipos_contrato.groupby('tipo_contrato')['conteo'].sum().reset_index()
-        
-        fig_pie = px.pie(
-            total_contratos, 
-            values='conteo', 
-            names='tipo_contrato',
-            title='Distribución Total de Tipos de Contrato',
-            hole=0.4
-        )
-        
-        st.plotly_chart(fig_pie, use_container_width=True)
-        
-        # Mostrar métricas
-        st.subheader("Resumen Numérico")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            planta_total = df_tipos_contrato[df_tipos_contrato['fuente'] == 'Planta']['conteo'].sum()
-            st.metric("Total Planta", f"{planta_total}")
-        
-        with col2:
-            manipuladoras_total = df_tipos_contrato[df_tipos_contrato['fuente'] == 'Manipuladoras']['conteo'].sum()
-            st.metric("Total Manipuladoras", f"{manipuladoras_total}")
-        
-        st.metric("Total General", f"{planta_total + manipuladoras_total}")
-    else:
-        st.warning("No hay datos suficientes para mostrar el indicador de tipos de contrato.")
+    ### 🚀 Comenzar
+    
+    Utilice el menú de navegación en la barra lateral para explorar el dashboard.
+    """)
+    
+    # Mostrar card con enlace a la sección
+    st.markdown("""
+    <div style="padding: 20px; border-radius: 10px; border: 1px solid #ddd; text-align: center;">
+        <h3>📊 Indicadores de Contrato</h3>
+        <p>Análisis de tipos de contrato por fuente</p>
+        <br/>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Agregar información de datos
+    st.subheader("Información de los Datos")
+    st.markdown("""
+    * **Manipuladoras**: Columna "TIPO DE CONTRATO" (Posición T)
+    * **Planta**: Columna "TIPO DE CONTRATO" (Posición M)
+    """)
 
 if __name__ == "__main__":
     main()
