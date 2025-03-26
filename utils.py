@@ -3,6 +3,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import streamlit as st
 import os
+from datetime import datetime
 
 # ID de la hoja de Google Sheets
 try:
@@ -92,6 +93,27 @@ def load_planta_data():
         df = df.replace('', pd.NA)
         df = df.dropna(how='all')
         
+        # Asegurar que las columnas necesarias tengan nombres consistentes
+        if 'TIPO DE NOVEDAD (ACTIVO/RETIRADO)' in df.columns:
+            df['tipo_novedad'] = df['TIPO DE NOVEDAD (ACTIVO/RETIRADO)']
+        
+        # Fechas de ingreso y retiro
+        if 'FECHA DE INGRESO (AAAAMMDD)' in df.columns:
+            df['fecha_ingreso'] = df['FECHA DE INGRESO (AAAAMMDD)']
+            # Convertir formato de fecha si es posible
+            try:
+                df['fecha_ingreso'] = pd.to_datetime(df['fecha_ingreso'], format='%Y%m%d', errors='coerce')
+            except:
+                pass
+        
+        if 'FECHA DE RETIRO (AAAAMMDD)' in df.columns:
+            df['fecha_retiro'] = df['FECHA DE RETIRO (AAAAMMDD)']
+            # Convertir formato de fecha si es posible
+            try:
+                df['fecha_retiro'] = pd.to_datetime(df['fecha_retiro'], format='%Y%m%d', errors='coerce')
+            except:
+                pass
+        
         return df
     
     except Exception as e:
@@ -142,6 +164,27 @@ def load_manipuladoras_data():
         df = df.replace('', pd.NA)
         df = df.dropna(how='all')
         
+        # Asegurar que las columnas necesarias tengan nombres consistentes
+        if 'TIPO DE NOVEDAD (ACTIVO/RETIRADO)' in df.columns:
+            df['tipo_novedad'] = df['TIPO DE NOVEDAD (ACTIVO/RETIRADO)']
+        
+        # Fechas de ingreso y retiro
+        if 'FECHA DE INGRESO (AAAAMMDD)' in df.columns:
+            df['fecha_ingreso'] = df['FECHA DE INGRESO (AAAAMMDD)']
+            # Convertir formato de fecha si es posible
+            try:
+                df['fecha_ingreso'] = pd.to_datetime(df['fecha_ingreso'], format='%Y%m%d', errors='coerce')
+            except:
+                pass
+        
+        if 'FECHA DE RETIRO (AAAAMMDD)' in df.columns:
+            df['fecha_retiro'] = df['FECHA DE RETIRO (AAAAMMDD)']
+            # Convertir formato de fecha si es posible
+            try:
+                df['fecha_retiro'] = pd.to_datetime(df['fecha_retiro'], format='%Y%m%d', errors='coerce')
+            except:
+                pass
+        
         return df
     
     except Exception as e:
@@ -162,6 +205,150 @@ def load_all_data():
     """
     planta_df = load_planta_data()
     manipuladoras_df = load_manipuladoras_data()
+    
+    return {
+        'planta': planta_df,
+        'manipuladoras': manipuladoras_df
+    }
+
+# Función para obtener valores únicos de tipo de novedad
+def get_unique_tipos_novedad():
+    """
+    Retorna una lista con los valores únicos de tipo de novedad de ambas tablas.
+    """
+    data_dict = load_all_data()
+    planta_df = data_dict['planta']
+    manipuladoras_df = data_dict['manipuladoras']
+    
+    tipos_planta = []
+    tipos_manipuladoras = []
+    
+    if 'tipo_novedad' in planta_df.columns:
+        tipos_planta = planta_df['tipo_novedad'].dropna().unique().tolist()
+    elif 'TIPO DE NOVEDAD (ACTIVO/RETIRADO)' in planta_df.columns:
+        tipos_planta = planta_df['TIPO DE NOVEDAD (ACTIVO/RETIRADO)'].dropna().unique().tolist()
+    
+    if 'tipo_novedad' in manipuladoras_df.columns:
+        tipos_manipuladoras = manipuladoras_df['tipo_novedad'].dropna().unique().tolist()
+    elif 'TIPO DE NOVEDAD (ACTIVO/RETIRADO)' in manipuladoras_df.columns:
+        tipos_manipuladoras = manipuladoras_df['TIPO DE NOVEDAD (ACTIVO/RETIRADO)'].dropna().unique().tolist()
+    
+    # Combinar y eliminar duplicados
+    tipos_combinados = list(set(tipos_planta + tipos_manipuladoras))
+    
+    return sorted(tipos_combinados)
+
+# Función para filtrar datos por tipo de novedad
+def filter_data_by_novedad(data_dict, tipos_novedad_seleccionados):
+    """
+    Filtra los DataFrames por tipos de novedad seleccionados.
+    """
+    planta_df = data_dict['planta'].copy()
+    manipuladoras_df = data_dict['manipuladoras'].copy()
+    
+    # Filtrar planta
+    if 'tipo_novedad' in planta_df.columns:
+        planta_df = planta_df[planta_df['tipo_novedad'].isin(tipos_novedad_seleccionados)]
+    elif 'TIPO DE NOVEDAD (ACTIVO/RETIRADO)' in planta_df.columns:
+        planta_df = planta_df[planta_df['TIPO DE NOVEDAD (ACTIVO/RETIRADO)'].isin(tipos_novedad_seleccionados)]
+    
+    # Filtrar manipuladoras
+    if 'tipo_novedad' in manipuladoras_df.columns:
+        manipuladoras_df = manipuladoras_df[manipuladoras_df['tipo_novedad'].isin(tipos_novedad_seleccionados)]
+    elif 'TIPO DE NOVEDAD (ACTIVO/RETIRADO)' in manipuladoras_df.columns:
+        manipuladoras_df = manipuladoras_df[manipuladoras_df['TIPO DE NOVEDAD (ACTIVO/RETIRADO)'].isin(tipos_novedad_seleccionados)]
+    
+    return {
+        'planta': planta_df,
+        'manipuladoras': manipuladoras_df
+    }
+
+# Función para obtener rango de fechas disponibles según tipo de novedad
+def get_date_range_by_novedad(data_dict, tipos_novedad_seleccionados):
+    """
+    Retorna el rango de fechas disponibles según el tipo de novedad seleccionado.
+    """
+    planta_df = data_dict['planta']
+    manipuladoras_df = data_dict['manipuladoras']
+    
+    fechas = []
+    
+    # Determinar qué columna de fecha usar
+    if 'ACTIVO' in tipos_novedad_seleccionados or 'CASO ESPECIAL' in tipos_novedad_seleccionados:
+        # Usar fechas de ingreso
+        if 'fecha_ingreso' in planta_df.columns:
+            fechas.extend(planta_df['fecha_ingreso'].dropna().tolist())
+        if 'fecha_ingreso' in manipuladoras_df.columns:
+            fechas.extend(manipuladoras_df['fecha_ingreso'].dropna().tolist())
+    
+    if 'RETIRADO' in tipos_novedad_seleccionados:
+        # Usar fechas de retiro
+        if 'fecha_retiro' in planta_df.columns:
+            fechas.extend(planta_df['fecha_retiro'].dropna().tolist())
+        if 'fecha_retiro' in manipuladoras_df.columns:
+            fechas.extend(manipuladoras_df['fecha_retiro'].dropna().tolist())
+    
+    # Convertir a fechas válidas si no son datetime
+    valid_fechas = []
+    for fecha in fechas:
+        if isinstance(fecha, pd.Timestamp) or isinstance(fecha, datetime):
+            valid_fechas.append(fecha)
+        else:
+            try:
+                fecha_dt = pd.to_datetime(fecha, format='%Y%m%d', errors='coerce')
+                if not pd.isna(fecha_dt):
+                    valid_fechas.append(fecha_dt)
+            except:
+                pass
+    
+    if not valid_fechas:
+        # Retornar un rango predeterminado si no hay fechas
+        today = pd.Timestamp.now()
+        return today - pd.Timedelta(days=365), today
+    
+    min_date = min(valid_fechas)
+    max_date = max(valid_fechas)
+    
+    return min_date, max_date
+
+# Función para filtrar datos por rango de fechas
+def filter_data_by_date_range(data_dict, tipos_novedad_seleccionados, date_range):
+    """
+    Filtra los DataFrames por rango de fechas según el tipo de novedad.
+    """
+    planta_df = data_dict['planta'].copy()
+    manipuladoras_df = data_dict['manipuladoras'].copy()
+    
+    fecha_min, fecha_max = date_range
+    
+    # Crear máscaras para cada DataFrame
+    planta_mask = pd.Series(False, index=planta_df.index)
+    manipuladoras_mask = pd.Series(False, index=manipuladoras_df.index)
+    
+    # Aplicar filtros según el tipo de novedad seleccionado
+    if 'ACTIVO' in tipos_novedad_seleccionados or 'CASO ESPECIAL' in tipos_novedad_seleccionados:
+        # Filtrar por fecha de ingreso para ACTIVO o CASO ESPECIAL
+        if 'fecha_ingreso' in planta_df.columns:
+            planta_mask = planta_mask | ((planta_df['fecha_ingreso'] >= fecha_min) & 
+                                        (planta_df['fecha_ingreso'] <= fecha_max))
+        
+        if 'fecha_ingreso' in manipuladoras_df.columns:
+            manipuladoras_mask = manipuladoras_mask | ((manipuladoras_df['fecha_ingreso'] >= fecha_min) & 
+                                                     (manipuladoras_df['fecha_ingreso'] <= fecha_max))
+    
+    if 'RETIRADO' in tipos_novedad_seleccionados:
+        # Filtrar por fecha de retiro para RETIRADO
+        if 'fecha_retiro' in planta_df.columns:
+            planta_mask = planta_mask | ((planta_df['fecha_retiro'] >= fecha_min) & 
+                                        (planta_df['fecha_retiro'] <= fecha_max))
+        
+        if 'fecha_retiro' in manipuladoras_df.columns:
+            manipuladoras_mask = manipuladoras_mask | ((manipuladoras_df['fecha_retiro'] >= fecha_min) & 
+                                                     (manipuladoras_df['fecha_retiro'] <= fecha_max))
+    
+    # Aplicar las máscaras
+    planta_df = planta_df[planta_mask]
+    manipuladoras_df = manipuladoras_df[manipuladoras_mask]
     
     return {
         'planta': planta_df,
