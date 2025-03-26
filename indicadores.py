@@ -12,9 +12,9 @@ def run():
         data_dict = load_all_data()
         
         # Extraer los DataFrames
-        manipuladoras_df = data_dict['manipuladoras']
-        planta_df = data_dict['planta']
-        aprendices_df = data_dict['aprendices']
+        manipuladoras_df = data_dict.get('manipuladoras', pd.DataFrame())
+        planta_df = data_dict.get('planta', pd.DataFrame())
+        # No intentamos acceder a 'aprendices'
 
     # Obtener todos los tipos de novedad disponibles
     all_novedades = get_all_novedades_types_custom(data_dict)
@@ -60,8 +60,8 @@ def run():
         if st.sidebar.button("Limpiar filtro de novedad"):
             # Volver a cargar los datos originales
             data_dict = load_all_data()
-            manipuladoras_df = data_dict['manipuladoras']
-            planta_df = data_dict['planta']
+            manipuladoras_df = data_dict.get('manipuladoras', pd.DataFrame())
+            planta_df = data_dict.get('planta', pd.DataFrame())
             
             # Limpiar estado del filtro
             st.session_state.novedad_filtro_aplicado = False
@@ -134,8 +134,8 @@ def run():
             if st.sidebar.button("Limpiar filtro de fechas"):
                 # Volver a cargar los datos originales (pero mantener el filtro de novedad si está activo)
                 data_dict = load_all_data()
-                manipuladoras_df = data_dict['manipuladoras']
-                planta_df = data_dict['planta']
+                manipuladoras_df = data_dict.get('manipuladoras', pd.DataFrame())
+                planta_df = data_dict.get('planta', pd.DataFrame())
                 
                 # Aplicar el filtro de novedad si está activo
                 if st.session_state.get('novedad_filtro_aplicado', False):
@@ -233,7 +233,7 @@ def get_all_novedades_types_custom(data_dict):
     Obtiene todos los tipos de novedad distintos de todas las fuentes.
     
     Args:
-        data_dict: Diccionario con los DataFrames {'manipuladoras': df1, 'planta': df2, 'aprendices': df3}
+        data_dict: Diccionario con los DataFrames {'manipuladoras': df1, 'planta': df2}
         
     Returns:
         Lista ordenada de tipos de novedad únicos
