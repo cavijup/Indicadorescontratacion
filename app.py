@@ -3,7 +3,9 @@ from datetime import datetime
 
 # Importar los módulos necesarios
 import indicadores
-import areas_contratos  # Nuevo módulo
+import areas_contratos
+import personal_activo
+import retiros  # Nuevo módulo de retiros
 
 # Configuración de la página
 st.set_page_config(
@@ -37,10 +39,10 @@ def main():
     # Agregar logo y menú de navegación
     add_logo()
     
-    # Menú de navegación con ambos módulos
+    # Menú de navegación con todos los módulos
     menu = st.sidebar.radio(
         "Navegación",
-        ["📊 Indicadores de Contrato", "📋 Áreas por Tipo de Contrato"]
+        ["📊 Indicadores de Contrato", "📋 Áreas por Tipo de Contrato", "👥 Personal Activo", "🚪 Motivos de Retiro"]
     )
     
     # Mostrar información en el sidebar
@@ -49,8 +51,12 @@ def main():
     # Mostrar el módulo seleccionado
     if menu == "📊 Indicadores de Contrato":
         indicadores.run()
-    else:
+    elif menu == "📋 Áreas por Tipo de Contrato":
         areas_contratos.run()
+    elif menu == "👥 Personal Activo":
+        personal_activo.run()
+    else:
+        retiros.run()
 
 if __name__ == "__main__":
     main()

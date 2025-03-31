@@ -5,8 +5,11 @@ from utils import load_all_data
 
 def run():
     """
-    Módulo que muestra tablas agrupadas por Tipo de Contrato para Planta y Aprendices,
-    por Área y Tipo de Contrato para Manipuladoras, y una tabla resumen global.
+    Módulo que muestra la agrupación de personal activo según:
+    - PROGRAMA AL QUE PERTENECE (Manipuladoras, columna H)
+    - AREA (Aprendices, columna F)
+    - AREA (Planta, columna N)
+    Además filtra específicamente registros de BUGA en la tabla Planta.
     """
     # Cargar datos
     with st.spinner("Cargando datos..."):
@@ -15,11 +18,7 @@ def run():
         # Extraer los DataFrames
         manipuladoras_df = data_dict['manipuladoras'].copy()
         planta_df = data_dict['planta'].copy() 
-        aprendices_df = data_dict['aprendices'].copy()  # Ahora cargamos la tabla real
-    
-    # Verificar si la tabla de aprendices está vacía
-    if aprendices_df.empty:
-        st.warning("No se encontraron datos en la tabla Aprendices. Por favor, verifica la hoja de Google Sheets.")
+        aprendices_df = data_dict['aprendices'].copy()
     
     # ---------- FILTROS EN LA BARRA LATERAL ----------
     st.sidebar.header("Filtros")
@@ -64,7 +63,7 @@ def run():
         st.sidebar.warning("Por favor, seleccione al menos un tipo de novedad.")
         tipos_novedad_seleccionados = ["ACTIVO"]  # Usar "ACTIVO" como respaldo
     
-    # 2. FILTRO DE FECHAS (Igual que en la primera página)
+    # 2. FILTRO DE FECHAS (Igual que en las otras páginas)
     st.sidebar.subheader("Rango de Fechas")
     
     # Preparar las fechas en los DataFrames para el filtrado
@@ -115,7 +114,7 @@ def run():
         "Seleccione rango de fechas",
         value=(min_date.date() if hasattr(min_date, 'date') else min_date,
                max_date.date() if hasattr(max_date, 'date') else max_date),
-        key="date_range_areas"
+        key="date_range_personal_activo"
     )
     
     # Asegurarse de que date_range sea una tupla
@@ -200,174 +199,141 @@ def run():
         return columna
     
     # Buscar las columnas necesarias
-    planta_contrato_col = encontrar_columna_por_posicion(
-        planta_filtrada, 
-        12,  # Posición M
-        ['TIPO DE CONTRATO', 'Tipo de Contrato', 'TIPO CONTRATO']
+    manipuladoras_programa_col = encontrar_columna_por_posicion(
+        manipuladoras_filtradas, 
+        7,  # Posición H
+        ['PROGRAMA AL QUE PERTENECE', 'Programa al que Pertenece', 'PROGRAMA']
     )
     
-    manipuladoras_area_col = encontrar_columna_por_posicion(
-        manipuladoras_filtradas, 
+    aprendices_area_col = encontrar_columna_por_posicion(
+        aprendices_filtrados, 
         5,  # Posición F
         ['AREA', 'ÁREA', 'Area', 'Área']
     )
     
-    manipuladoras_contrato_col = encontrar_columna_por_posicion(
-        manipuladoras_filtradas, 
-        19,  # Posición T
-        ['TIPO DE CONTRATO', 'Tipo de Contrato', 'TIPO CONTRATO']
-    )
-    
-    aprendices_contrato_col = encontrar_columna_por_posicion(
-        aprendices_filtrados, 
-        39,  # Posición An
-        ['TIPO DE CONTRATO', 'Tipo de Contrato', 'TIPO CONTRATO']
+    planta_area_col = encontrar_columna_por_posicion(
+        planta_filtrada, 
+        13,  # Posición N
+        ['AREA', 'ÁREA', 'Area', 'Área']
     )
     
     # Mostrar advertencia si no se encuentran las columnas
     missing_cols = []
-    if not planta_contrato_col:
-        missing_cols.append("Tipo de Contrato (Planta, posición M)")
-    if not manipuladoras_area_col:
-        missing_cols.append("Área (Manipuladoras, posición F)")
-    if not manipuladoras_contrato_col:
-        missing_cols.append("Tipo de Contrato (Manipuladoras, posición T)")
-    if not aprendices_contrato_col:
-        missing_cols.append("Tipo de Contrato (Aprendices, posición An)")
+    if not manipuladoras_programa_col:
+        missing_cols.append("PROGRAMA AL QUE PERTENECE (Manipuladoras, posición H)")
+    if not aprendices_area_col:
+        missing_cols.append("AREA (Aprendices, posición F)")
+    if not planta_area_col:
+        missing_cols.append("AREA (Planta, posición N)")
     
     if missing_cols:
         st.warning(f"No se encontraron las siguientes columnas: {', '.join(missing_cols)}")
         st.info("Por favor, verifica los nombres o posiciones de las columnas en los datos.")
     
-    # ---------- FUNCIONES PARA CREAR TABLAS ----------
-    def crear_tabla_por_contrato(df, col_contrato, titulo, origen):
-        """Crea una tabla de conteo por tipo de contrato."""
-        st.header(titulo)
+    # ---------- CREAR TABLAS DE AGRUPACIÓN ----------
+    # 1. MANIPULADORAS - Agrupación por PROGRAMA AL QUE PERTENECE
+    st.header("Agrupación por Programa (Manipuladoras)")
+    
+    if manipuladoras_programa_col and not manipuladoras_filtradas.empty:
+        # Normalizar la columna para el conteo
+        manipuladoras_filtradas['programa_normalizado'] = manipuladoras_filtradas[manipuladoras_programa_col]
         
-        if col_contrato and not df.empty:
-            # Crear columna normalizada para agrupar
-            df['contrato_normalizado'] = df[col_contrato]
-            
-            # Contar registros por tipo de contrato
-            conteo = df['contrato_normalizado'].value_counts().reset_index()
-            conteo.columns = ['Tipo de Contrato', 'Total']
-            conteo['Origen'] = origen
-            
-            # Ordenar por tipo de contrato
-            conteo = conteo.sort_values('Tipo de Contrato')
-            
-            # Mostrar la tabla
-            if len(conteo) > 0:
-                st.dataframe(conteo, use_container_width=True)
-                return conteo
-            else:
-                st.warning(f"No hay datos disponibles de {origen} con los filtros seleccionados.")
-                return pd.DataFrame(columns=['Tipo de Contrato', 'Total', 'Origen'])
+        # Contar por programa
+        conteo_programas = manipuladoras_filtradas['programa_normalizado'].value_counts().reset_index()
+        conteo_programas.columns = ['Programa', 'Total']
+        
+        # Ordenar por programa
+        conteo_programas = conteo_programas.sort_values('Programa')
+        # Mostrar conteo
+        if len(conteo_programas) > 0:
+            st.dataframe(conteo_programas, use_container_width=True)
         else:
-            st.warning(f"No hay datos disponibles de {origen} o falta la columna de tipo de contrato.")
-            return pd.DataFrame(columns=['Tipo de Contrato', 'Total', 'Origen'])
-    
-    def crear_tabla_por_area_contrato(df, col_area, col_contrato, titulo, origen):
-        """Crea una tabla de conteo por área y tipo de contrato."""
-        st.header(titulo)
-        
-        if col_area and col_contrato and not df.empty:
-            # Crear columnas normalizadas para agrupar
-            df['area_normalizada'] = df[col_area]
-            df['contrato_normalizado'] = df[col_contrato]
-            
-            # Contar registros por área y tipo de contrato
-            conteo = df.groupby(['area_normalizada', 'contrato_normalizado']).size().reset_index()
-            conteo.columns = ['Área', 'Tipo de Contrato', 'Total']
-            conteo['Origen'] = origen
-            
-            # Ordenar por Área y luego por Tipo de Contrato
-            conteo = conteo.sort_values(['Área', 'Tipo de Contrato'])
-            
-            # Mostrar la tabla
-            if len(conteo) > 0:
-                st.dataframe(conteo, use_container_width=True)
-                
-                # También crear un conteo solo por tipo de contrato para el resumen
-                resumen = conteo.groupby('Tipo de Contrato')['Total'].sum().reset_index()
-                resumen['Origen'] = origen
-                return resumen
-            else:
-                st.warning(f"No hay datos disponibles de {origen} con los filtros seleccionados.")
-                return pd.DataFrame(columns=['Tipo de Contrato', 'Total', 'Origen'])
-        else:
-            st.warning(f"No hay datos disponibles de {origen} o faltan las columnas necesarias.")
-            return pd.DataFrame(columns=['Tipo de Contrato', 'Total', 'Origen'])
-    
-    # ---------- TABLA 1: PLANTA POR TIPO DE CONTRATO ----------
-    conteo_planta = crear_tabla_por_contrato(
-        planta_filtrada, 
-        planta_contrato_col,
-        "Conteo por Tipo de Contrato (Planta)", 
-        "Planta"
-    )
-    
-    # ---------- TABLA 2: MANIPULADORAS POR ÁREA Y TIPO DE CONTRATO ----------
-    conteo_manipuladoras = crear_tabla_por_area_contrato(
-        manipuladoras_filtradas,
-        manipuladoras_area_col,
-        manipuladoras_contrato_col,
-        "Conteo por Área y Tipo de Contrato (Manipuladoras)",
-        "Manipuladoras"
-    )
-    
-    # ---------- TABLA 3: APRENDICES POR TIPO DE CONTRATO ----------
-    conteo_aprendices = crear_tabla_por_contrato(
-        aprendices_filtrados, 
-        aprendices_contrato_col,
-        "Conteo por Tipo de Contrato (Aprendices)", 
-        "Aprendices"
-    )
-    
-    # ---------- TABLA RESUMEN: TODAS LAS FUENTES ----------
-    st.header("Tabla Resumen: Todos los Tipos de Contrato")
-    
-    # Combinar todos los conteos
-    conteos = [conteo_planta, conteo_manipuladoras, conteo_aprendices]
-    conteos = [c for c in conteos if not c.empty]
-    
-    if conteos:
-        # Concatenar todos los conteos
-        todos_conteos = pd.concat(conteos, ignore_index=True)
-        
-        # Crear pivote para mostrar una tabla más clara
-        pivote = pd.pivot_table(
-            todos_conteos, 
-            values='Total', 
-            index='Tipo de Contrato', 
-            columns='Origen', 
-            aggfunc='sum', 
-            fill_value=0
-        ).reset_index()
-        
-        # Asegurarse de que todas las columnas de origen existan
-        for origen in ['Planta', 'Manipuladoras', 'Aprendices']:
-            if origen not in pivote.columns:
-                pivote[origen] = 0
-        
-        # Añadir columna de total
-        pivote['Total General'] = pivote[['Planta', 'Manipuladoras', 'Aprendices']].sum(axis=1)
-        
-        # Ordenar por tipo de contrato
-        pivote = pivote.sort_values('Tipo de Contrato')
-        
-        # Añadir una fila de totales
-        totales = pd.DataFrame({
-            'Tipo de Contrato': ['TOTAL'],
-            'Planta': [pivote['Planta'].sum()],
-            'Manipuladoras': [pivote['Manipuladoras'].sum()],
-            'Aprendices': [pivote['Aprendices'].sum()],
-            'Total General': [pivote['Total General'].sum()]
-        })
-        
-        pivote = pd.concat([pivote, totales], ignore_index=True)
-        
-        # Mostrar la tabla resumen
-        st.dataframe(pivote, use_container_width=True)
+            st.warning("No hay datos de programas disponibles con los filtros seleccionados.")
     else:
-        st.warning("No hay datos disponibles para crear la tabla resumen.")
+        st.warning("No hay datos disponibles de Manipuladoras o falta la columna de programa.")
+    
+    # 2. APRENDICES - Agrupación por AREA
+    st.header("Agrupación por Área (Aprendices)")
+    
+    if aprendices_area_col and not aprendices_filtrados.empty:
+        # Normalizar la columna para el conteo
+        aprendices_filtrados['area_normalizada'] = aprendices_filtrados[aprendices_area_col]
+        
+        # Contar por área
+        conteo_areas_aprendices = aprendices_filtrados['area_normalizada'].value_counts().reset_index()
+        conteo_areas_aprendices.columns = ['Área', 'Total']
+        
+        # Ordenar por área
+        conteo_areas_aprendices = conteo_areas_aprendices.sort_values('Área')
+        
+        # Mostrar conteo
+        if len(conteo_areas_aprendices) > 0:
+            st.dataframe(conteo_areas_aprendices, use_container_width=True)
+        else:
+            st.warning("No hay datos de áreas disponibles para Aprendices con los filtros seleccionados.")
+    else:
+        st.warning("No hay datos disponibles de Aprendices o falta la columna de área.")
+    
+    # 3. PLANTA - Agrupación por AREA (excluyendo BUGA)
+    st.header("Agrupación por Área (Planta, excluyendo BUGA)")
+
+    if planta_area_col and not planta_filtrada.empty:
+        # Normalizar la columna para el conteo
+        planta_filtrada['area_normalizada'] = planta_filtrada[planta_area_col]
+        
+        # Excluir las áreas que contienen BUGA
+        planta_sin_buga = planta_filtrada[
+            ~planta_filtrada['area_normalizada'].str.contains('BUGA', case=False, na=False)
+        ]
+        
+        # Contar por área
+        conteo_areas_planta = planta_sin_buga['area_normalizada'].value_counts().reset_index()
+        conteo_areas_planta.columns = ['Área', 'Total']
+        
+        # Ordenar por área
+        conteo_areas_planta = conteo_areas_planta.sort_values('Área')
+        
+        # Mostrar conteo
+        if len(conteo_areas_planta) > 0:
+            # Agregar una fila con el total
+            total_row = pd.DataFrame({
+                'Área': ['TOTAL'],
+                'Total': [conteo_areas_planta['Total'].sum()]
+            })
+            
+            # Concatenar con la tabla original
+            conteo_areas_planta_con_total = pd.concat([conteo_areas_planta, total_row], ignore_index=True)
+            
+            # Mostrar la tabla con el total
+            st.dataframe(conteo_areas_planta_con_total, use_container_width=True)
+        else:
+            st.warning("No hay datos de áreas disponibles para Planta (excluyendo BUGA) con los filtros seleccionados.")
+    else:
+        st.warning("No hay datos disponibles de Planta o falta la columna de área.")    
+    
+    # 4. PLANTA - Filtrado específico para BUGA
+    st.header("Personal en BUGA (Planta)")
+    
+    if planta_area_col and not planta_filtrada.empty:
+        # Filtrar registros que contengan 'BUGA'
+        planta_buga = planta_filtrada[
+            planta_filtrada['area_normalizada'].str.contains('BUGA', case=False, na=False)
+        ]
+        
+        # Contar por área específica de BUGA
+        if not planta_buga.empty:
+            conteo_buga = planta_buga['area_normalizada'].value_counts().reset_index()
+            conteo_buga.columns = ['Área en BUGA', 'Total']
+            
+            # Ordenar por área
+            conteo_buga = conteo_buga.sort_values('Área en BUGA')
+            
+            # Mostrar conteo
+            st.dataframe(conteo_buga, use_container_width=True)
+            
+            # Mostrar total general
+            st.metric("Total de Personal en BUGA", planta_buga.shape[0])
+        else:
+            st.warning("No se encontraron registros con BUGA en el área con los filtros seleccionados.")
+    else:
+        st.warning("No hay datos disponibles de Planta o falta la columna de área para filtrar BUGA.")
