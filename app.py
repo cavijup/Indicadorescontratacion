@@ -1,8 +1,9 @@
 import streamlit as st
 from datetime import datetime
 
-# Importar únicamente el nuevo módulo de indicadores
+# Importar los módulos necesarios
 import indicadores
+import areas_contratos  # Nuevo módulo
 
 # Configuración de la página
 st.set_page_config(
@@ -36,17 +37,20 @@ def main():
     # Agregar logo y menú de navegación
     add_logo()
     
-    # Menú de navegación simplificado
+    # Menú de navegación con ambos módulos
     menu = st.sidebar.radio(
         "Navegación",
-        ["📊 Indicadores de Contrato"]
+        ["📊 Indicadores de Contrato", "📋 Áreas por Tipo de Contrato"]
     )
     
     # Mostrar información en el sidebar
     show_info()
     
-    # Mostrar solo el módulo de indicadores
-    indicadores.run()
+    # Mostrar el módulo seleccionado
+    if menu == "📊 Indicadores de Contrato":
+        indicadores.run()
+    else:
+        areas_contratos.run()
 
 if __name__ == "__main__":
     main()
